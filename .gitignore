@@ -1,0 +1,7 @@
+*.pyc
+nginx*.conf
+access*.log*
+*.state
+build
+dist
+

@@ -1,0 +1,5 @@
+pyinstaller==3.2
+click==6.6
+pyparsing==2.1.8
+requests==2.11.1
+semver==2.6.0
