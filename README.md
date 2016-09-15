@@ -2,9 +2,9 @@
 
 ## How to run it
 
-(replace 53 below with the most recent [travis build](https://travis-ci.org/honeycombio/nginx_installer) number.)
+(replace 3 below with the most recent [travis build](https://travis-ci.org/honeycombio/nginx_installer) number.)
 
-    wget -q -O nginx_installer https://s3.amazonaws.com/honeycomb-builds/honeycombio/nginx_installer/53/53.1/nginx_installer && \
+    wget -q -O nginx_installer https://honeycomb.io/download/nginx_installer/1.3 && \
     #echo "abcabc123123examplesha256checksum123123abcabc quickstart" | sha256sum -c && \
     chmod 755 ./nginx_installer && ./nginx_installer
 
