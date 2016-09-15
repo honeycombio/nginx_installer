@@ -5,7 +5,7 @@
 (replace 53 below with the most recent [travis build](https://travis-ci.org/honeycombio/nginx_installer) number.)
 
     wget -q -O nginx_installer https://s3.amazonaws.com/honeycomb-builds/honeycombio/nginx_installer/53/53.1/nginx_installer && \
-    #echo "108eac4c77f9b0c3f95201b1baba0ffe088ee23a6760e2720d572a00892ed17b quickstart" | sha256sum -c && \
+    #echo "abcabc123123examplesha256checksum123123abcabc quickstart" | sha256sum -c && \
     chmod 755 ./nginx_installer && ./nginx_installer
 
 ## What it does
