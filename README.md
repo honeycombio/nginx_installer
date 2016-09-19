@@ -1,12 +1,8 @@
 # Honeycomb Nginx Installer
 
-## How to run it
+## [How to run it](https://honeycomb.io/docs/send-data/connectors/nginx/#automatic-installation)
 
-(replace 3 below with the most recent [travis build](https://travis-ci.org/honeycombio/nginx_installer) number.)
-
-    wget -q -O nginx_installer https://honeycomb.io/download/nginx_installer/1.3 && \
-    #echo "abcabc123123examplesha256checksum123123abcabc quickstart" | sha256sum -c && \
-    chmod 755 ./nginx_installer && ./nginx_installer
+(Replace the `x` in `1.x` with the most recent [travis build](https://travis-ci.org/honeycombio/nginx_installer) number.)
 
 ## What it does
 
