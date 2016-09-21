@@ -65,17 +65,17 @@ NGINX_WHITELIST_LOCATIONS = [
 
 def _check_honeytail(honeytail_loc="honeytail"):
     if not os.path.isfile(honeytail_loc):
-        click.echo("Downloading the latest honeytail from %s\n" % HONEYTAIL_URL)
-
-        click.echo("""Honeytail is our open-source data intake toolkit.
-You can read more about honeytail at https://honeycomb.io/docs/send-data/logs/
+        click.echo("Downloading the latest honeytail from %s" % HONEYTAIL_URL)
+        click.echo("""
+Honeytail is our open-source data intake toolkit.
+You can read more about honeytail at https://honeycomb.io/docs/send-data/agent/
 """)
 
         # Mac doesn't ship with wget, we could use curl
         if not HONEYTAIL_URL:
             click.echo("""Sorry, only Linux is supported for nginx auto configuration.
     Please see the docs or ask for further assistance.
-    https://honeycomb.io/docs/send-data/logs/""")
+    https://honeycomb.io/docs/send-data/agent/""")
             sys.exit(1)
 
         with open("honeytail", "wb") as fb:
