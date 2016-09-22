@@ -40,13 +40,13 @@ MESSAGES = {
 DEBUG = False
 
 HONEYTAIL_URL = {
-    "Linux": "https://honeycomb.io/download/honeytail/1.95",
+    "Linux": "https://honeycomb.io/download/honeytail/1.101",
     #"Darwin": "http://localhost:8080/honeytail"
 }.get(platform.system(), None)
 
 
 HONEYTAIL_CHECKSUM = {
-    "Linux": "00df650b8b2909f5b204ef8546f28b519f1267be57598045fca98d8e97d097bd",
+    "Linux": "4439018d5aea031dbac236668327dfd5a6715007994986ec274e42ff6d56650b",
     #"Darwin": "68cfd0cdc8c016d3d8b62ff6d6388e0c8e24bd83174e45ada6c761c365aaa677",
 }.get(platform.system(), None)
 
