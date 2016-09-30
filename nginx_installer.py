@@ -41,9 +41,9 @@ MESSAGES = {
 
 DEBUG = False
 
-HONEYTAIL_VERSION="1.101"
+HONEYTAIL_VERSION='1.127'
 HONEYTAIL_CHECKSUM = {
-    "Linux": "4439018d5aea031dbac236668327dfd5a6715007994986ec274e42ff6d56650b",
+    "Linux": "afc2aac444155cdd482b8e23b86ca34dd8a6fc53a7df9ddae66ba1289577ef87",
     #"Darwin": "68cfd0cdc8c016d3d8b62ff6d6388e0c8e24bd83174e45ada6c761c365aaa677",
 }.get(platform.system(), None)
 
