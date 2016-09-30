@@ -4,11 +4,13 @@ import hashlib
 import subprocess
 from nginxparser import NginxParser
 
+from distutils.version import StrictVersion
 import click
 import logging
 import os.path
 import platform
 import pprint
+import re
 import requests
 import semver
 import shutil
@@ -39,15 +41,16 @@ MESSAGES = {
 
 DEBUG = False
 
-HONEYTAIL_URL = {
-    "Linux": "https://honeycomb.io/download/honeytail/1.101",
-    #"Darwin": "http://localhost:8080/honeytail"
-}.get(platform.system(), None)
-
-
+HONEYTAIL_VERSION="1.101"
 HONEYTAIL_CHECKSUM = {
     "Linux": "4439018d5aea031dbac236668327dfd5a6715007994986ec274e42ff6d56650b",
     #"Darwin": "68cfd0cdc8c016d3d8b62ff6d6388e0c8e24bd83174e45ada6c761c365aaa677",
+}.get(platform.system(), None)
+
+
+HONEYTAIL_URL = {
+    "Linux": "https://honeycomb.io/download/honeytail/"+HONEYTAIL_VERSION,
+    #"Darwin": "http://localhost:8080/honeytail"
 }.get(platform.system(), None)
 
 
@@ -62,59 +65,93 @@ NGINX_WHITELIST_LOCATIONS = [
     "/usr/local/etc/nginx/nginx.conf",  # OSX, Homebrew
 ]
 
-
 def _check_honeytail(honeytail_loc="honeytail"):
     if not os.path.isfile(honeytail_loc):
-        click.echo("Downloading the latest honeytail from %s" % HONEYTAIL_URL)
-        click.echo("""
+        if honeytail_loc != "honeytail":
+            # the user specified a location, so let's tell them we couldn't find it.
+            click.echo("Couldn't find honeytail at %s" % honeytail_loc)
+
+        honeytail_loc =_fetch_honeytail()
+        return
+    
+    existing_version, existing_newer = _check_honeytail_version(honeytail_loc)
+    if not existing_newer:
+        if honeytail_loc != "honeytail":
+            click.echo("Honeytail version at %s is too old (%s), downloading new version (%s) to ./honeytail." % (honeytail_loc, existing_version, HONEYTAIL_VERSION))
+        else:
+            click.echo("Honeytail version is too old (%s), downloading new version (%s)." % (existing_version, HONEYTAIL_VERSION))
+
+        honeytail_loc =_fetch_honeytail()
+        return
+
+    click.echo("Found existing honeytail binary.")
+    click.echo()
+
+def _check_honeytail_version(honeytail_loc):
+    honeytail_cmd = os.path.abspath(honeytail_loc)
+    try:
+        verstring = subprocess.check_output([honeytail_cmd, "--version"], stderr=subprocess.STDOUT)
+    except OSError:
+        return "unknown", False
+    
+    verstring = re.sub(r'Honeytail version', '', verstring).strip()
+    return verstring, StrictVersion(verstring) >= StrictVersion(HONEYTAIL_VERSION)
+
+def _fetch_honeytail():
+    dest = "./honeytail"
+    dest_tmp = dest + "-tmp"
+    click.echo("Downloading from %s to %s" % (HONEYTAIL_URL, dest))
+    click.echo("""
 Honeytail is our open-source data intake toolkit.
 You can read more about honeytail at https://honeycomb.io/docs/send-data/agent/
 """)
 
-        # Mac doesn't ship with wget, we could use curl
-        if not HONEYTAIL_URL:
-            click.echo("""Sorry, only Linux is supported for nginx auto configuration.
+    # Mac doesn't ship with wget, we could use curl
+    if not HONEYTAIL_URL:
+        click.echo("""Sorry, only Linux is supported for nginx auto configuration.
     Please see the docs or ask for further assistance.
     https://honeycomb.io/docs/send-data/agent/""")
+        sys.exit(1)
+
+    with open(dest_tmp, "wb") as fb:
+        resp = requests.get(HONEYTAIL_URL, stream=True)
+        try:
+            assert resp.status_code == 200
+        except AssertionError:
+            click.echo("There was an error downloading honeytail. Please try again or let us know what happened.")
+            try:
+                os.remove(dest_tmp)
+            except OSError:
+                pass
             sys.exit(1)
 
-        with open("honeytail", "wb") as fb:
-            resp = requests.get(HONEYTAIL_URL, stream=True)
-            try:
-                assert resp.status_code == 200
-            except AssertionError:
-                click.echo("There was an error downloading honeytail. Please try again or let us know what happened.")
-                sys.exit(1)
+        resp.raw.decode_content = True
+        shutil.copyfileobj(resp.raw, fb)
 
-            resp.raw.decode_content = True
-            shutil.copyfileobj(resp.raw, fb)
+    if HONEYTAIL_CHECKSUM:
+        click.echo("Verifying the download.")
+        hash = hashlib.sha256()
+        with open(dest_tmp, "rb") as fh:
+            while True:
+                chunk = fh.read(4096)
+                if not chunk:
+                    break
+                hash.update(chunk)
 
-        if HONEYTAIL_CHECKSUM:
-            click.echo("Verifying the download.")
-            hash = hashlib.sha256()
-            with open("honeytail", "rb") as fh:
-                while True:
-                    chunk = fh.read(4096)
-                    if not chunk:
-                        break
-                    hash.update(chunk)
+        if hash.hexdigest() != HONEYTAIL_CHECKSUM:
+            click.echo("The hash of the downloaded file didn't match the one on record.")
+            click.echo("Please try again or ask for further assistance.")
+            logging.error("Expecting : {} but received {}".format(HONEYTAIL_CHECKSUM, hash.hexdigest()))
+            shutil.move(dest_tmp, dest+"-badchecksum")
+            sys.exit(1)
 
-            if hash.hexdigest() != HONEYTAIL_CHECKSUM:
-                click.echo("The hash of the downloaded file didn't match the one on record.")
-                click.echo("Please try again or ask for further assistance.")
-                logging.error("Expecting : {} but received {}".format(HONEYTAIL_CHECKSUM, hash.hexdigest()))
-                shutil.move("honeytail", "honeytail-badchecksum")
-                sys.exit(1)
-
-    else:
-        click.echo("Found existing honeytail binary.")
-        click.echo()
-
-    click.echo("Ensuring honeytail is executable.")
+    shutil.move(dest_tmp, dest)
+    
+    click.echo("Ensuring %s is executable." % dest)
     click.echo()
-    os.chmod(honeytail_loc, stat.S_IRWXU | stat.S_IXGRP | stat.S_IXOTH | stat.S_IRGRP | stat.S_IROTH)
-
-
+    os.chmod(dest, stat.S_IRWXU | stat.S_IXGRP | stat.S_IXOTH | stat.S_IRGRP | stat.S_IROTH)
+    return dest
+    
 def _find_nginx_conf(conf_loc=None):
     click.echo("Looking for nginx config...")
     click.echo()
@@ -327,11 +364,7 @@ query tools faster.
     ask = click.confirm("Would you like to backfill using {} now?".format(log_name),
         default=True)
 
-    if honeytail_loc[0] == "/":
-        honeytail_cmd = honeytail_loc
-    else:
-        honeytail_cmd = "./" + honeytail_loc
-
+    honeytail_cmd = os.path.abspath(honeytail_loc)
     backfill_command = """{honeytail_cmd} --writekey="{writekey}" --parser="nginx" --nginx.conf="{conf_loc}" --nginx.format="{log_format}" --file="{log_name}" --tail.read_from=beginning --tail.stop --dataset="{dataset}" --backoff""".format(
         honeytail_cmd=honeytail_cmd,
         conf_loc=conf_loc,
